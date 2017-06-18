@@ -9,11 +9,11 @@ class CtxTest < Test::Unit::TestCase
   end
   
   def test_run
-    encrypted_data = RubyDES::Ctx.new(@data, @key).encrypt
+    encrypted_data = RubyDES::Encrypt.new(@data, @key).encrypt
     
     assert_equal ctx(:encrypted_bit_array), encrypted_data.bit_array
     
-    decrypted_data = RubyDES::Ctx.new(encrypted_data, @key).decrypt
+    decrypted_data = RubyDES::Encrypt.new(encrypted_data, @key).decrypt
     
     assert_equal ctx(:decrypted_bit_array), decrypted_data.bit_array
   end

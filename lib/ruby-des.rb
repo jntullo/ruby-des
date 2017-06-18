@@ -24,47 +24,23 @@ module RubyDES
         0x22, 0x02, 0x2a, 0x0a, 0x32, 0x12, 0x3a, 0x1a,
         0x21, 0x01, 0x29, 0x09, 0x31, 0x11, 0x39, 0x19]
   
-  class Ctx
+  class Encrypt
     attr_reader :data, :key
-    
-    def initialize(data, key)
-      unless data.is_a?(RubyDES::Block) and key.is_a?(RubyDES::Block)
-        raise "RubyDES::InvalidBlockFormat: Data and key must be a Block object."
-      end
-      
-      @data = data
-      @key  = key
-    end
-    
-    def encrypt
-      self.run(:encrypt)
-    end
-    
-    def decrypt
-      self.run(:decrypt)
-    end
-    
-    protected
-    
-    def run(operation)
+
+    def self.encrypt(string, key_schedule)
+      data = string
+      k = key_schedule
       l = [] # l[0] is the IP_1_L permutation of the data block, l[1..16] are the results of each round of encryption.
       r = [] # r[0] is the IP_1_R permutation of the data block, r[1..16] are the results of each round of encryption.
       
       l << IP_L.collect{|p| data.bit_array[p - 1]}
       r << IP_R.collect{|p| data.bit_array[p - 1]}
       
-      case operation
-      when :encrypt
-        k = KeySchedule.new(key.bit_array).sub_keys
-      when :decrypt
-        k = KeySchedule.new(key.bit_array).sub_keys.reverse
-      end
-      
       16.times do |i|
         l << r[i]
         r << XOR.run(Feistel.run(r[i], k[i]), l[i])
       end
-      
+
       return RubyDES::Block.new(FP.collect{|p| (r.last + l.last)[p - 1]})
     end
   end
@@ -74,14 +50,14 @@ module RubyDES
     
     def initialize(input)
       if input.is_a?(String)
-        raise "RubyDES::InvalidStringLength: Input String must contain (8) characters." unless input.length.eql?(8)
+        raise "RubyDES::InvalidStringLength: Input String must contain (8) characters." unless input.length == 8
         
         @string    = input
         @bit_array = input.unpack('B*').join.split('').collect{|b| b.to_i}
       elsif input.is_a?(Array)
         raise "RubyDES::InvalidArraySize: Input Array must contain (64) bits." unless input.size.eql?(64)
-        
-        @string    = input.join.to_a.pack('B*')
+
+        @string    = Array(input.join).pack('B*')
         @bit_array = input
       else
         raise "RubyDES::InvalidFormat: Input must be a String or an Array."
